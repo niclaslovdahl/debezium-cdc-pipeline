@@ -1,0 +1,47 @@
+version: '3.3'
+
+services:
+  zookeeper:
+    container_name: zookeeper
+    networks:
+      - kafka_network
+    image: wurstmeister/zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - '2181:2181'
+
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka:2.13-2.8.1
+    networks:
+      - kafka_network
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CREATE_TOPICS: 'simple-topic:1:1'
+      KAFKA_LISTENERS: EXTERNAL_SAME_HOST://:29092,INTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL_SAME_HOST://localhost:29092,INTERNAL://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL_SAME_HOST:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+    ports:
+      - 29092:29092
+    depends_on:
+      - zookeeper
+
+  kafka-connect:
+    image: wurstmeister/kafka:2.13-2.8.1
+    container_name: kafka_connect
+    networks:
+      - kafka_network
+    ports:
+      - '8083:8083'
+    volumes:
+      - './kafka_connect_config/connect-distributed.properties:/opt/kafka/config/connect-distributed.properties'
+      - './connectors/:/kafka/connect/'
+    depends_on:
+      - zookeeper
+      - kafka
+    command: /opt/kafka/bin/connect-distributed.sh /opt/kafka/config/connect-distributed.properties
+networks:
+  kafka_network:
