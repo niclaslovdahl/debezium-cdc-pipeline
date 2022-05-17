@@ -1,0 +1,1 @@
+use the download-plugins.sh script to populate this folder with plugins
