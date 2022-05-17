@@ -37,11 +37,51 @@ services:
     ports:
       - '8083:8083'
     volumes:
-      - './kafka_connect_config/connect-distributed.properties:/opt/kafka/config/connect-distributed.properties'
-      - './connectors/:/kafka/connect/'
+      - './kafka-connect-config/connect-distributed.properties:/opt/kafka/config/connect-distributed.properties'
+      - './connector-plugins/:/kafka/connect/'
     depends_on:
       - zookeeper
       - kafka
     command: /opt/kafka/bin/connect-distributed.sh /opt/kafka/config/connect-distributed.properties
+
+  postgres:
+    image: postgres:14.2-alpine
+    container_name: postgres
+    networks:
+      - kafka_network
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: database
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    command: [ "postgres", "-c", "wal_level=logical" ]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
+    container_name: elastic
+    networks:
+      - kafka_network
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+    ports:
+      - 9200:9200
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    networks:
+      - kafka_network
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    ports:
+      - 8080:8080
+
+volumes:
+  postgres-data:
 networks:
   kafka_network:
