@@ -1,0 +1,3 @@
+/temp
+connector-plugins/*
+!connector-plugins/readme.txt
